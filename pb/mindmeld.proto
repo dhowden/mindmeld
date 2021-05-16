@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package mindmeld;
+
+option go_package = "github.com/dhowden/mindmeld/pb";
+
+message Header {
+   // Token to use to access the service.
+   string token = 1;
+}
+
+// ControlService controls routing.
+service ControlService {
+   // Create a service, and wait for requests to come through via the stream.
+   // The caller will then receive a response message for each client that wants
+   // to connect to the service.
+   rpc CreateService(CreateServiceRequest) returns (stream CreateServiceResponse);
+
+   // Forward to remote service.
+   rpc ForwardToService(ForwardToServiceRequest) returns (ForwardToServiceResponse);
+}
+
+// Create a service hosted by this member.
+message CreateServiceRequest {
+   // Name of the service.
+   string name = 1;
+}
+
+message CreateServiceResponse {
+   // Token to use when using this service.
+   string token = 1;
+
+   // Dial address for the proxy.
+   string dial_addr = 2;
+}
+
+// Forward a service from this member to another.
+message ForwardToServiceRequest {
+  // Name of the service.
+  string name = 1;
+}
+
+message ForwardToServiceResponse{
+   // Token to use when using this service.
+   string token = 1;
+   
+   // Dial address for the proxy.
+   string dial_addr = 2;
+}
