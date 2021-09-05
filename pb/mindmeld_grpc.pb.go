@@ -24,6 +24,8 @@ type ControlServiceClient interface {
 	CreateService(ctx context.Context, in *CreateServiceRequest, opts ...grpc.CallOption) (ControlService_CreateServiceClient, error)
 	// Forward to remote service.
 	ForwardToService(ctx context.Context, in *ForwardToServiceRequest, opts ...grpc.CallOption) (*ForwardToServiceResponse, error)
+	// List services.
+	ListServices(ctx context.Context, in *ListServicesRequest, opts ...grpc.CallOption) (*ListServicesResponse, error)
 }
 
 type controlServiceClient struct {
@@ -75,6 +77,15 @@ func (c *controlServiceClient) ForwardToService(ctx context.Context, in *Forward
 	return out, nil
 }
 
+func (c *controlServiceClient) ListServices(ctx context.Context, in *ListServicesRequest, opts ...grpc.CallOption) (*ListServicesResponse, error) {
+	out := new(ListServicesResponse)
+	err := c.cc.Invoke(ctx, "/mindmeld.ControlService/ListServices", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlServiceServer is the server API for ControlService service.
 // All implementations must embed UnimplementedControlServiceServer
 // for forward compatibility
@@ -85,6 +96,8 @@ type ControlServiceServer interface {
 	CreateService(*CreateServiceRequest, ControlService_CreateServiceServer) error
 	// Forward to remote service.
 	ForwardToService(context.Context, *ForwardToServiceRequest) (*ForwardToServiceResponse, error)
+	// List services.
+	ListServices(context.Context, *ListServicesRequest) (*ListServicesResponse, error)
 	mustEmbedUnimplementedControlServiceServer()
 }
 
@@ -97,6 +110,9 @@ func (UnimplementedControlServiceServer) CreateService(*CreateServiceRequest, Co
 }
 func (UnimplementedControlServiceServer) ForwardToService(context.Context, *ForwardToServiceRequest) (*ForwardToServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ForwardToService not implemented")
+}
+func (UnimplementedControlServiceServer) ListServices(context.Context, *ListServicesRequest) (*ListServicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListServices not implemented")
 }
 func (UnimplementedControlServiceServer) mustEmbedUnimplementedControlServiceServer() {}
 
@@ -150,6 +166,24 @@ func _ControlService_ForwardToService_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ControlService_ListServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListServicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).ListServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mindmeld.ControlService/ListServices",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).ListServices(ctx, req.(*ListServicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ControlService_ServiceDesc is the grpc.ServiceDesc for ControlService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,12 +195,134 @@ var ControlService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ForwardToService",
 			Handler:    _ControlService_ForwardToService_Handler,
 		},
+		{
+			MethodName: "ListServices",
+			Handler:    _ControlService_ListServices_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "CreateService",
 			Handler:       _ControlService_CreateService_Handler,
 			ServerStreams: true,
+		},
+	},
+	Metadata: "mindmeld.proto",
+}
+
+// ProxyServiceClient is the client API for ProxyService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProxyServiceClient interface {
+	ProxyConnection(ctx context.Context, opts ...grpc.CallOption) (ProxyService_ProxyConnectionClient, error)
+}
+
+type proxyServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProxyServiceClient(cc grpc.ClientConnInterface) ProxyServiceClient {
+	return &proxyServiceClient{cc}
+}
+
+func (c *proxyServiceClient) ProxyConnection(ctx context.Context, opts ...grpc.CallOption) (ProxyService_ProxyConnectionClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ProxyService_ServiceDesc.Streams[0], "/mindmeld.ProxyService/ProxyConnection", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &proxyServiceProxyConnectionClient{stream}
+	return x, nil
+}
+
+type ProxyService_ProxyConnectionClient interface {
+	Send(*Payload) error
+	Recv() (*Payload, error)
+	grpc.ClientStream
+}
+
+type proxyServiceProxyConnectionClient struct {
+	grpc.ClientStream
+}
+
+func (x *proxyServiceProxyConnectionClient) Send(m *Payload) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *proxyServiceProxyConnectionClient) Recv() (*Payload, error) {
+	m := new(Payload)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ProxyServiceServer is the server API for ProxyService service.
+// All implementations must embed UnimplementedProxyServiceServer
+// for forward compatibility
+type ProxyServiceServer interface {
+	ProxyConnection(ProxyService_ProxyConnectionServer) error
+	mustEmbedUnimplementedProxyServiceServer()
+}
+
+// UnimplementedProxyServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedProxyServiceServer struct {
+}
+
+func (UnimplementedProxyServiceServer) ProxyConnection(ProxyService_ProxyConnectionServer) error {
+	return status.Errorf(codes.Unimplemented, "method ProxyConnection not implemented")
+}
+func (UnimplementedProxyServiceServer) mustEmbedUnimplementedProxyServiceServer() {}
+
+// UnsafeProxyServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProxyServiceServer will
+// result in compilation errors.
+type UnsafeProxyServiceServer interface {
+	mustEmbedUnimplementedProxyServiceServer()
+}
+
+func RegisterProxyServiceServer(s grpc.ServiceRegistrar, srv ProxyServiceServer) {
+	s.RegisterService(&ProxyService_ServiceDesc, srv)
+}
+
+func _ProxyService_ProxyConnection_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ProxyServiceServer).ProxyConnection(&proxyServiceProxyConnectionServer{stream})
+}
+
+type ProxyService_ProxyConnectionServer interface {
+	Send(*Payload) error
+	Recv() (*Payload, error)
+	grpc.ServerStream
+}
+
+type proxyServiceProxyConnectionServer struct {
+	grpc.ServerStream
+}
+
+func (x *proxyServiceProxyConnectionServer) Send(m *Payload) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *proxyServiceProxyConnectionServer) Recv() (*Payload, error) {
+	m := new(Payload)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ProxyService_ServiceDesc is the grpc.ServiceDesc for ProxyService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ProxyService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "mindmeld.ProxyService",
+	HandlerType: (*ProxyServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ProxyConnection",
+			Handler:       _ProxyService_ProxyConnection_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "mindmeld.proto",

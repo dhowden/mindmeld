@@ -1,9 +1,9 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net"
+	"os"
 
 	"google.golang.org/grpc"
 
@@ -11,23 +11,25 @@ import (
 	"github.com/dhowden/mindmeld/internal/protoproxy"
 )
 
-var (
-	proxyBind = flag.String("proxy-bind", "", "host:port for TCP proxy")
-	proxyDial = flag.String("proxy-dial", "", "dial address for clients to reach TCP proxy")
-)
-
 func main() {
-	flag.Parse()
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("Defaulting to port %s", port)
+	}
 
-	log.Printf("Listening for TCP proxy traffic on %q...", *proxyBind)
-	l, err := net.Listen("tcp", *proxyBind)
+	dialAddr := os.Getenv("DIAL_ADDR")
+	log.Printf("DIAL_ADDR: %q", dialAddr)
+
+	log.Printf("Listening for gRPC traffic on :%v...", port)
+	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("Listen: %v", err)
 	}
 
 	pps := protoproxy.NewServer()
 
-	s := mindmeld.NewServer(*proxyDial)
+	s := mindmeld.NewServer(dialAddr)
 	go func() {
 		if err := s.ProxyListen(pps); err != nil {
 			log.Printf("Listen(): %v", err)
@@ -37,8 +39,6 @@ func main() {
 	gs := grpc.NewServer()
 	mindmeld.RegisterServer(gs, s)
 	protoproxy.RegisterServer(gs, pps)
-
-	log.Printf("Listening for gRPC control messages on %q...", *proxyBind)
 	if err := gs.Serve(l); err != nil {
 		log.Printf("gRPC.Serve(): %v", err)
 	}

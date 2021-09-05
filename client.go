@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/dhowden/mindmeld/internal"
+	"github.com/dhowden/mindmeld/internal/protoproxy"
+
 	"github.com/dhowden/mindmeld/pb"
 )
 
@@ -65,12 +67,15 @@ func (sc *ServiceClient) Register(ctx context.Context) error {
 
 func (sc *ServiceClient) handleConn(token, dialAddr string) {
 	log.Printf("Creating connection to host traffic for forward %q", token)
-	c, err := net.Dial("tcp", dialAddr)
+	// c, err := internal.DialPlex("tcp", dialAddr, 'p')
+	c, err := protoproxy.Dial(sc.cc)
 	if err != nil {
 		log.Printf("Could not dial proxy: %v", err)
 		return
 	}
 	defer c.Close()
+
+	defer log.Printf("Closing connection hosting traffic for forward %q", token)
 
 	if err := internal.WriteHeader(c, &pb.Header{Token: token}); err != nil {
 		fmt.Printf("Could not write header: %v", err)
@@ -146,12 +151,17 @@ func (fc *ForwardClient) handleConn(c net.Conn) {
 		return
 	}
 
+	log.Printf("Creating connection to host forward %q", resp.GetToken())
+
 	// Dial the proxy.
-	fconn, err := net.Dial("tcp", resp.GetDialAddr())
+	// fconn, err := internal.DialPlex("tcp", resp.GetDialAddr(), 'p')
+	fconn, err := protoproxy.Dial(fc.cc)
 	if err != nil {
 		log.Printf("Could not dial: %v", err)
 	}
 	defer fconn.Close()
+
+	defer log.Printf("Closing connection for hosted forward %q", resp.GetToken())
 
 	// Identify this forward.
 	if err := internal.WriteHeader(fconn, &pb.Header{Token: resp.GetToken()}); err != nil {

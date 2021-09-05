@@ -9,12 +9,15 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/dhowden/mindmeld/internal"
+
 	"github.com/dhowden/mindmeld/pb"
 )
 
@@ -48,15 +51,17 @@ var _ pb.ControlServiceServer = (*Server)(nil)
 // service represents a service, and handles incoming
 // forwards via in.
 type service struct {
-	name string
+	name    string
+	created time.Time
 
 	in chan *forward
 }
 
 func newService(name string) *service {
 	return &service{
-		name: name,
-		in:   make(chan *forward),
+		name:    name,
+		created: time.Now(),
+		in:      make(chan *forward),
 	}
 }
 
@@ -65,7 +70,7 @@ func (s *service) waitForFwd() <-chan *forward {
 }
 
 func (s *service) String() string {
-	return fmt.Sprintf("svc[name:%q]", s.name)
+	return fmt.Sprintf("svc[name:%q,created:%v]", s.name, s.created)
 }
 
 // forward is a handler for incoming forwards.
@@ -177,7 +182,7 @@ func (s *Server) handleProxyConn(c net.Conn) {
 		fwd.conn = c
 
 		// Lookup the service for this forward (check that it's still available).
-		svc, ok := s.services[fwd.service]
+		svc, ok := s.getService(fwd.service)
 		if !ok {
 			log.Printf("No service for forward %v", fwd)
 			c.Close()
@@ -322,6 +327,23 @@ func (s *Server) ForwardToService(ctx context.Context, r *pb.ForwardToServiceReq
 	return &pb.ForwardToServiceResponse{
 		Token:    token,
 		DialAddr: s.proxyDial,
+	}, nil
+}
+
+func (s *Server) ListServices(ctx context.Context, _ *pb.ListServicesRequest) (*pb.ListServicesResponse, error) {
+	defer s.mu.RUnlock()
+	s.mu.RLock()
+
+	out := make([]*pb.Service, 0, len(s.services))
+	for _, v := range s.services {
+		out = append(out, &pb.Service{
+			Name:       v.name,
+			CreateTime: timestamppb.New(v.created),
+		})
+	}
+
+	return &pb.ListServicesResponse{
+		Services: out,
 	}, nil
 }
 

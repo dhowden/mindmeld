@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package mindmeld;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/dhowden/mindmeld/pb";
 
 message Header {
@@ -18,6 +20,23 @@ service ControlService {
 
    // Forward to remote service.
    rpc ForwardToService(ForwardToServiceRequest) returns (ForwardToServiceResponse);
+
+   // List services.
+   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+}
+
+message ListServicesRequest {}
+
+message ListServicesResponse {
+   repeated Service services = 1;
+}
+
+message Service {
+   // Name of the service.
+   string name = 1;
+
+   // Time the service was created.  Output only.
+   google.protobuf.Timestamp create_time = 2;
 }
 
 // Create a service hosted by this member.
@@ -46,4 +65,17 @@ message ForwardToServiceResponse{
    
    // Dial address for the proxy.
    string dial_addr = 2;
+}
+
+// Proxy requests through gRPC.
+// This is particularly useful for hosting the router in CloudRun.
+service ProxyService {
+   rpc ProxyConnection(stream Payload) returns (stream Payload);
+}
+
+message Payload {
+   oneof payload {
+      Header header = 1;
+      bytes data = 2;
+   }
 }
