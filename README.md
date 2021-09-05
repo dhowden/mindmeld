@@ -1,6 +1,6 @@
 # mindmeld
 
-MindMeld is a toy project for port-forwarding between machines on the internet.  It works by passing traffic through an intermediary server which is reachable by all parties.
+A is a toy project for port-forwarding between machines on the internet.  It works by passing traffic through an intermediary server which is reachable by all parties.
 
 It uses gRPC streaming to pass control messages and proxy traffic, which means that the intermediary server can run in GCP Cloud Run.
 
@@ -36,6 +36,6 @@ The code was initially designed so that a separate TCP server would run on the r
 
 Since Cloud Run was updated to support gRPC bi-directional streaming, it was suddenly a possibility!
 
-The proxying connections are now handling via `internal/protoproxy` which creates implementations of `net.Conn` and `net.Listener` to translate calls to `Write` into stream sends, calls to `Read` into stream receives, and `Accept` into new connections.
+The proxying connections are now handled via `internal/protoproxy` which creates implementations of `net.Conn` and `net.Listener` to translate calls to `Write` into stream sends, calls to `Read` into stream receives, and `Accept` into new connections.
 
 The tricky bit is correctly handling when a connection closes, and so there are likely some lingering bugs here.
