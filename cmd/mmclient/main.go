@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	node     = flag.String("node", "mindmeld.zed.ai:1111", "mindmeld node")
+	node     = flag.String("node", "", "mindmeld node")
 	insecure = flag.Bool("insecure", false, "connection to gRPC is insecure")
 
 	mode = flag.String("mode", "listen", "mode to operate: listen|dial|list")
