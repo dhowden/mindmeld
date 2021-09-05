@@ -11,21 +11,33 @@ import (
 	"github.com/dhowden/mindmeld/pb"
 )
 
+// Number of individual write/read requests to buffer at a time.
+const bufferSize = 10
+
+// PayloadStream represents the key methods required from gRPC streaming
+// to emulate a connection.
 type PayloadStream interface {
+	// Send a message on the stream, translates to a Write.
 	Send(*pb.Payload) error
+
+	// CloseSend marks the end of sends.  Only implemented on client streams,
+	// so we need to mock it for server streams.
 	CloseSend() error
+
+	// Recv a message from the stream, translates to a Read.
 	Recv() (*pb.Payload, error)
 }
 
 func newConn(s PayloadStream) *Conn {
 	c := &Conn{
-		r: newReadBuffer(10),
-		w: newWriteBuffer(10),
+		r: newReadBuffer(bufferSize),
+		w: newWriteBuffer(bufferSize),
 	}
 	go c.loop(s)
 	return c
 }
 
+// Conn wraps a PayloadStream into a net.Conn.
 type Conn struct {
 	r *readBuffer
 	w *writeBuffer
@@ -38,9 +50,13 @@ func (c *Conn) SetDeadline(_ time.Time) error      { return errors.New("not supp
 func (c *Conn) SetReadDeadline(_ time.Time) error  { return errors.New("not supported") }
 func (c *Conn) SetWriteDeadline(_ time.Time) error { return errors.New("not supported") }
 
+// Write some bytes, implements io.Writer. Translates to a Send on the PayloadStream.
 func (c *Conn) Write(b []byte) (n int, err error) { return c.w.Write(b) }
-func (c *Conn) Read(b []byte) (n int, err error)  { return c.r.Read(b) }
 
+// Read some bytes, implements io.Reader. Translates to a Recv on the PayloadStream.
+func (c *Conn) Read(b []byte) (n int, err error) { return c.r.Read(b) }
+
+// Close the connection.  Translates to a CloseSend on the PayloadStream.
 func (c *Conn) Close() error {
 	c.w.Close()
 	c.r.Close()
@@ -180,15 +196,3 @@ func (wb *writeBuffer) Close() error {
 	wb.close()
 	return nil
 }
-
-// type countingReader struct {
-// 	io.Reader
-
-// 	N int64
-// }
-
-// func (cr *countingReader) Read(b []byte) (n int, err error) {
-// 	n, err = cr.Reader.Read(b)
-// 	cr.N += int64(n)
-// 	return
-// }

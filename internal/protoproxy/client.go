@@ -12,6 +12,7 @@ import (
 
 var _ net.Conn = (*Conn)(nil)
 
+// Dial creates a connection to the proxy service.
 func Dial(cc *grpc.ClientConn) (*Conn, error) {
 	ps := pb.NewProxyServiceClient(cc)
 	x, err := ps.ProxyConnection(context.Background())
