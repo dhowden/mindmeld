@@ -2,7 +2,7 @@
 
 ...is a toy project for port-forwarding between machines on the internet.  It works by passing traffic through an intermediary server which is reachable by all parties.
 
-It uses gRPC streaming to pass control messages and proxy traffic, which means that the intermediary server can run in GCP Cloud Run.
+It uses gRPC streaming to pass control messages and proxy traffic, which means that the intermediary server can run in [Cloud Run](https://cloud.google.com/run).
 
 ## Motivation
 
@@ -34,7 +34,7 @@ Users access a `service` by:
 
 The code was initially designed so that a separate TCP server would run on the router and host the proxy connections. Though easier to debug, this meant it couldn't be used in Cloud Run.
 
-Since Cloud Run was updated to support gRPC bi-directional streaming, it was suddenly a possibility!
+Since Cloud Run was [updated](https://cloud.google.com/blog/products/serverless/cloud-run-gets-websockets-http-2-and-grpc-bidirectional-streams) to support gRPC bi-directional streaming, it was suddenly a possibility!
 
 The proxying connections are now handled via `internal/protoproxy` which creates implementations of `net.Conn` and `net.Listener` to translate calls to `Write` into stream sends, calls to `Read` into stream receives, and `Accept` into new connections.
 
