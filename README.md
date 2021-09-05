@@ -1,6 +1,6 @@
 # mindmeld
 
-A is a toy project for port-forwarding between machines on the internet.  It works by passing traffic through an intermediary server which is reachable by all parties.
+...is a toy project for port-forwarding between machines on the internet.  It works by passing traffic through an intermediary server which is reachable by all parties.
 
 It uses gRPC streaming to pass control messages and proxy traffic, which means that the intermediary server can run in GCP Cloud Run.
 
