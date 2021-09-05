@@ -8,8 +8,5 @@ import (
 
 func TestNewTokenSource(t *testing.T) {
 	ts := mindmeld.NewTokenSource()
-
-	for i := 0; i < 10; i++ {
-		t.Error(ts.Token())
-	}
+	_ = ts.Token()
 }
