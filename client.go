@@ -17,8 +17,8 @@ import (
 	"github.com/dhowden/mindmeld/pb"
 )
 
-// ServiceClient registers services which will be forwarded through this
-// process.
+// ServiceClient registers services and constructs connections to pass
+// traffic through when forwards arrive for them.
 type ServiceClient struct {
 	cc *grpc.ClientConn
 
@@ -38,7 +38,7 @@ func NewServiceClient(cc *grpc.ClientConn, name, target string) *ServiceClient {
 	}
 }
 
-// Register the service and run the service.  Running connections will
+// Register the service and run it.  Running connections will
 // continue to operate after Register returns (even with non-nil error).
 // Call Close to shutdown all running connections.
 func (sc *ServiceClient) Register(ctx context.Context) error {
@@ -101,6 +101,8 @@ func (sc *ServiceClient) Close() error {
 	return nil
 }
 
+// NewForwardClient creates a new forward for service, that will forward connections
+// from localAddr.
 func NewForwardClient(cc *grpc.ClientConn, service, localAddr string) *ForwardClient {
 	return &ForwardClient{
 		cc:        cc,
@@ -110,6 +112,8 @@ func NewForwardClient(cc *grpc.ClientConn, service, localAddr string) *ForwardCl
 	}
 }
 
+// ForwardClient sets up a local TCP listener which takes incoming connections
+// and forwards them to the service.
 type ForwardClient struct {
 	cc *grpc.ClientConn
 
@@ -120,6 +124,7 @@ type ForwardClient struct {
 	done     chan bool
 }
 
+// Forward sets up a local listener and forward the connections to the service.
 func (fc *ForwardClient) Forward() error {
 	l, err := net.Listen("tcp", fc.localAddr)
 	if err != nil {
