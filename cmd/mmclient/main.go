@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
@@ -88,7 +87,7 @@ func dialGRPC(addr string, insecure bool) (*grpc.ClientConn, error) {
 	if insecure {
 		opts = append(opts, grpc.WithInsecure())
 	} else {
-		systemRoots, err := x509.SystemCertPool()
+		systemRoots, err := SystemRoots()
 		if err != nil {
 			return nil, fmt.Errorf("could not get system certs: %w", err)
 		}
