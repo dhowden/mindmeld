@@ -170,9 +170,14 @@ func (wb *writeBuffer) Write(b []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
+	// Must not retain the original value beyond the call
+	// (as per io.Writer).
+	b2 := make([]byte, len(b))
+	copy(b2, b)
+
 	select {
-	case wb.ch <- b:
-		return len(b), nil
+	case wb.ch <- b2:
+		return len(b2), nil
 
 	case err := <-wb.errCh:
 		wb.close()
